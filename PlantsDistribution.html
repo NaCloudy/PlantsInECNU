@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flower Map</title>
+    <script charset="utf-8" src="https://map.qq.com/api/gljs?v=1.exp&key=RPGBZ-IA7WQ-DIA5I-BUHBF-3W6JO-Q2BFV"></script>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.2/dist/echarts.min.js"></script>
+
+    <link rel="stylesheet" href = "styles.css">
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+        }
+    </style>
+</head>
+
+<!-- <body background="flower.jpg"
+        style = "background-repeat: :no-repeat;
+        background-attachment:fixed;
+        background-size:100%"> -->
+    <body background="flower.png"
+    style = "background-repeat: no-repeat;
+    /* background-attachment:fixed; */
+    background-color: #f7fafa;
+    background-size:100%">
+    <!-- 选择器 -->
+    <select id="campusSelector" onchange="handleCampusChange()">
+        <option value="zhongshan">中山北路校区</option>
+        <option value="minhang">闵行校区</option>
+    </select>
+
+    <div id="divider"></div>
+
+    <div id = "sidebar">
+        <p><center>点击地图中植物坐标点以获得植物信息</center></p>
+    </div>
+    <!-- 地图 -->
+    <div id="container" style="width: 1000px; height: 600px; text-align: center;"></div>
+    <div id="pieofallkinds" style="width: 800px; height: 600px; text-align: center;"></div>
+    <div id="pieofowned" style="width: 800px; height: 400px; text-align: center;"></div>
+    
+    <div id="cloud">
+        <h1><center>文本词云分析</center></h1>
+        <img src="./wordCloud/all_words.png"><span><br>所有文本词云分析<br></span>
+        <img src="./wordCloud/top150_words.png"><span><br>最常出现150词的词云分析<br></span>
+    </div>
+    <h1><center>院系领养情况</center></h1>
+    <div id="funnel"></div>
+    <h1><center>科目系类</center></h1>
+    <div id="tree1"></div>
+    <div id="tree2"></div>
+    <div id="tree3"></div>
+    <div id="tree4"></div>
+    <script>
+        //设置闵行中心点和中北中心点
+        var map1center = new TMap.LatLng(31.03148,121.453725);
+        var map2center = new TMap.LatLng(31.227073, 121.406079);
+
+        // 初始化加载中北地图
+        function initMap(data) {
+
+            map = new TMap.Map("container", {
+                center: map2center,
+                zoom: 18
+            });
+
+
+            // 生成坐标
+            var pos = [];
+            for (let i = 0; i < data.length; i++) {
+                pos[i] = new TMap.LatLng(data[i].latitude, data[i].longitude);
+            }
+
+            //生成图片
+            var pic = [];
+            var Content=[];
+            for (let i = 0; i < data.length; i++) {
+                var index, len;
+                index = data[i].template.icon.lastIndexOf('/');
+                len = data[i].template.icon.length;
+                var temp, aft;
+                temp = "./icon/";
+                aft = data[i].template.icon.substring(index + 1, len);
+                pic[i] = temp.concat(aft);
+
+                Content[i] = [];
+                Content[i][0] = "植物名称： "+data[i].template.name;
+                Content[i][1] = "学名（拉丁语）： "+data[i].template.scientificName;
+                Content[i][2] = "学名（英语）： "+data[i].template.scientificNameEn;
+                Content[i][3] = "科： "+data[i].template.branch;
+                Content[i][4] = "习性： "+data[i].template.habit;
+                Content[i][5] = "位置："+data[i].place;
+                Content[i][6] = "具体位置："+data[i].number;
+                if(data[i].owner != null)
+                {
+                    Content[i][7] = "拥有者："+data[i].owner.name;
+                    Content[i][8] = "捐赠寄语："+data[i].owner.slogan;
+                    Content[i][9] = "捐赠故事："+data[i].owner.content;
+                }
+                else
+                {
+                    Content[i][7] = "";
+                    Content[i][8] = "";
+                    Content[i][9] = "";
+                }
+
+            }
+            var output = [];
+            for(let i=0;i<data.length;i++)
+            {
+                output[i]="";
+                for(let j=0;j<10;j++)
+                {
+                    output[i] += "<p>"+Content[i][j] + "</p>" ;
+                }
+            }
+
+            var clickHandler = function (evt) {
+                //evt.stopPropagation();
+                //evt.preventDefault();
+                //console.log(evt.target);
+                var sidebar = document.getElementById("sidebar");
+                sidebar.innerHTML = "<left>" + evt.geometry.properties.title + "</left>";
+                
+            };
+            //中北1426-1526河东河边
+            //闵行1750-1873生科院
+            //点标记1426-1873
+            for (let i = 1426; i <1526; i++) {
+
+                var markerLayer = new TMap.MultiMarker({
+                    map: map,
+                    styles: {
+                        "myStyle": new TMap.MarkerStyle({
+                            "width": 50,
+                            "height": 50,
+                            "anchor": { x: 10, y: 30 },
+                            "src": pic[i]
+                        }),
+                    },
+                    geometries: [
+                        {
+                            position: pos[i],
+                            id: i.toString(),
+                            styleId: "myStyle",
+                            properties:
+                            {
+                                "title": "<p></p>"+output[i]
+                            }
+                        },
+                    ],
+                });
+                //console.log(markerLayer.geometries[0].id);
+                markerLayer.on("click", clickHandler);
+            }
+
+            for (let i = 1750; i <1873; i++) {
+                var markerLayer = new TMap.MultiMarker({
+                    map: map,
+                    styles: {
+                        "myStyle": new TMap.MarkerStyle({
+                            "width": 50,
+                            "height": 50,
+                            "anchor": { x: 10, y: 30 },
+                            "src": pic[i]
+                        }),
+                    },
+                    geometries: [
+                        {
+                            position: pos[i],
+                            id: i.toString(),
+                            styleId: "myStyle",
+                            properties:
+                            {
+                                "title": "<p></p>"+output[i]
+                            }
+                        },
+                    ],
+                });
+                //console.log(markerLayer.geometries[0].id);
+                markerLayer.on("click", clickHandler);
+            }
+
+            for (let i = 0; i <data.length; i++) {
+                //中北1426-1526河东河边
+            //闵行1750-1873生科院
+                if(i>=1426 & i<1526)
+                    continue;
+                if(i>=1750 & i<1873)
+                    continue;
+
+                var markerLayer = new TMap.MultiMarker({
+                    map: map,
+                    styles: {
+                        "myStyle": new TMap.MarkerStyle({
+                            "width": 50,
+                            "height": 50,
+                            "anchor": { x: 10, y: 30 },
+                            "src": pic[i]
+                        }),
+                    },
+                    geometries: [
+                        {
+                            position: pos[i],
+                            id: i.toString(),
+                            styleId: "myStyle",
+                            properties:
+                            {
+                                "title": "<p></p>"+output[i]
+                            }
+                        },
+                    ],
+                });
+                //console.log(markerLayer.geometries[0].id);
+                markerLayer.on("click", clickHandler);
+            }
+            
+            //markers.push(multiMarker);
+            //eventHandlers.push(clickHandler);
+        }
+
+        
+        //事件
+        function handleCampusChange() {
+            var campusSelector = document.getElementById("campusSelector");
+            var selectedCampus = campusSelector.value;
+
+            // 移动中心点坐标
+            if (selectedCampus == "minhang") {
+                map.setCenter(map1center);
+            } else if (selectedCampus == "zhongshan") {
+                map.setCenter(map2center)
+            }
+        }
+
+
+        
+        //解绑点击事件，要求事件处理方法不能是匿名方法
+        function eventOff(){
+            marker.off("click", clickHandler)
+        }
+
+        // 导入数据
+        d3.json("524data.json", function (data) {
+            initMap(data);
+        });
+        
+        var data1={
+    "name": "草木",
+    "children": [
+        {
+            "name": "蝶形花科",
+            "children": [
+                {"name": "白车轴草"}
+            ]
+        },
+        {
+            "name": "禾本科",
+            "children": [
+                {"name": "紫竹"}
+            ]
+        },
+        {
+            "name": "菊科",
+            "children": [
+                {"name": "黄金菊"}
+            ]
+        },
+        {
+            "name": "莲科",
+            "children": [
+                {"name": "莲"}
+            ]
+        },
+        {
+            "name": "美人蕉科",
+            "children": [
+                {"name": "美人蕉"}
+            ]
+        },
+        {
+            "name": "十字花",
+            "children": [
+                {"name": "诸葛菜（二月兰）"}
+            ]
+        },
+        {
+            "name": "石蒜科",
+            "children": [
+                {"name": "石蒜"},
+                {"name": "葱莲"}
+            ]
+        },
+        {
+            "name": "竹芋科",
+            "children": [
+                {"name": "再力花"}
+            ]
+        },
+        {
+            "name": "酢浆草科",
+            "children": [
+                {"name": "红花酢浆草"}
+            ]
+        }
+    ]
+};
+
+var data2={
+    "name": "灌木",
+    "children": [
+        {
+            "name": "芭蕉科",
+            "children": [
+                {"name": "芭蕉"}
+            ]
+        },
+        {
+            "name": "百合科",
+            "children": [
+                {"name": "凤尾丝兰"}
+            ]
+        },
+        {
+            "name": "柏科",
+            "children": [
+                {"name": "龙柏"}
+            ]
+        },
+        {
+            "name": "大戟科",
+            "children": [
+                {"name": "山麻杆"}
+            ]
+        },
+        {
+            "name": "蝶形花科",
+            "children": [
+                {"name": "龙爪槐"}
+            ]
+        },
+        {
+            "name": "冬青科",
+            "children": [
+                {"name": "冬青"},
+                {"name": "枸骨"},
+                {"name": "龟甲冬青"},
+                {"name": "猫儿刺"},
+                {"name": "无刺枸骨"}
+            ]
+        },
+        {
+            "name": "豆科",
+            "children": [
+                {"name": "金雀儿"}
+            ]
+        },
+        {
+            "name": "杜鹃花科",
+            "children": [
+                {"name": "杜鹃"}
+            ]
+        },
+        {
+            "name": "海桐花科",
+            "children": [
+                {"name": "海桐"}
+            ]
+        },
+        {
+            "name": "禾本科",
+            "children": [
+                {"name": "阔叶箬竹"},
+                {"name": "孝顺竹"}
+            ]
+        },
+        {
+            "name": "胡颓子科",
+            "children": [
+                {"name": "胡颓子"}
+            ]
+        },
+        {
+            "name": "黄杨科",
+            "children": [
+                {"name": "黄杨"}
+            ]
+        },
+        {
+            "name": "夹竹桃科",
+            "children": [
+                {"name": "夹竹桃"}
+            ]
+        },
+        {
+            "name": "金缕梅科",
+            "children": [
+                {"name": "红花檵木"},
+                {"name":"蚊母树"}
+            ]
+        },
+        {
+            "name": "锦葵科",
+            "children": [
+                {"name": "木芙蓉"},
+                {"name": "木槿"}
+            ]
+        },
+        {
+            "name": "蜡梅科",
+            "children": [
+                {"name": "蜡梅"}
+            ]
+        },
+        {
+            "name": "马鞭草科",
+            "children": [
+                {"name": "臭牡丹"}
+            ]
+        },
+        {
+            "name": "木犀科",
+            "children": [
+                {"name": "白丁香"},
+                {"name": "丁香"},
+                {"name": "金叶女贞"},
+                {"name": "金钟花"},
+                {"name": "木犀"},
+                {"name": "日本女贞"},
+                {"name": "小蜡"},
+                {"name": "小叶女贞"},
+                {"name": "迎春花"},
+                {"name": "云南黄馨"},
+                {"name": "柊树"},
+                {"name": "紫丁香"},
+                {"name": "木樨榄"}
+            ]
+        },
+        {
+            "name": "漆树科",
+            "children": [
+                {"name": "盐肤木"}
+            ]
+        },
+        {
+            "name": "千屈菜科",
+            "children": [
+                {"name": "紫薇"}
+            ]
+        },
+        {
+            "name": "茜草",
+            "children": [
+                {"name": "金边六月雪"},
+                {"name": "六月雪"},
+                {"name": "狭叶栀子"},
+                {"name": "栀子"},
+                {"name": "碧桃"},
+                {"name": "棣棠花"},
+                {"name": "东阳锦"},
+                {"name": "粉花绣线菊"},
+                {"name": "海棠属"},
+                {"name": "红叶石楠"},
+                {"name": "火棘"},
+                {"name": "麦李"},
+                {"name": "毛山荆子"},
+                {"name": "玫瑰柱海棠"},
+                {"name": "木瓜"},
+                {"name": "欧洲酸樱桃"},
+                {"name": "枇杷"},
+                {"name": "秋子梨"},
+                {"name": "日本晚樱"},
+                {"name": "桃"},
+                {"name": "西府海棠"},
+                {"name": "杏"},
+                {"name": "野蔷薇"},
+                {"name": "樱属"},
+                {"name": "榆叶梅"},
+                {"name": "月季花"},
+                {"name": "皱皮木瓜"}
+            ]
+        },
+        {
+            "name": "忍冬科",
+            "children": [
+                {"name": "锦带花"},
+                {"name": "琼花"},
+                {"name": "日本锦带花"}
+            ]
+        },
+        {
+            "name": "瑞香科",
+            "children": [
+                {"name": "结香"}
+            ]
+        },
+        {
+            "name": "桑科",
+            "children": [
+                {"name": "无花果"}
+            ]
+        },
+        {
+            "name": "山茶",
+            "children": [
+                {"name": "茶梅"},
+                {"name": "山茶"}
+            ]
+        },
+        {
+            "name": "山茱萸科",
+            "children": [
+                {"name": "青木"},
+                {"name": "洒金桃叶珊瑚"},
+                {"name": "桃叶珊瑚"}
+            ]
+        },
+        {
+            "name": "芍药科",
+            "children": [
+                {"name": "牡丹"}
+            ]
+        },
+        {
+            "name": "石榴科",
+            "children": [
+                {"name": "石榴"}
+            ]
+        },
+        {
+            "name": "鼠李科",
+            "children": [
+                {"name": "栆"}
+            ]
+        },
+        {
+            "name": "桃金娘科",
+            "children": [
+                {"name": "黄金串钱柳"}
+            ]
+        },
+        {
+            "name": "藤黄科",
+            "children": [
+                {"name": "金丝桃"}
+            ]
+        },
+        {
+            "name": "卫矛科",
+            "children": [
+                {"name": "冬青卫矛"},
+                {"name": "金边冬青卫矛"}
+            ]
+        },
+        {
+            "name": "五福花科",
+            "children": [
+                {"name": "日本珊瑚树"},
+                {"name": "绣球荚蒾"}
+            ]
+        },
+        {
+            "name": "五加科",
+            "children": [
+                {"name": "八角金盘"}
+            ]
+        },
+        {
+            "name": "小檗科",
+            "children": [
+                {"name": "豪猪刺"},
+                {"name":"阔叶十大功劳"},
+                {"name": "南天竹"},
+                {"name":"十大功劳"},
+                {"name": "狭叶十大功劳"}
+                
+            ]
+        },
+        {
+            "name": "绣球科",
+            "children": [
+                {"name": "绣球"},
+                {"name": "溲疏"}
+            ]
+        },
+        {
+            "name": "云实科",
+            "children": [
+                {"name": "紫荆"}
+            ]
+        },
+        {
+            "name": "芸香科",
+            "children": [
+                {"name": "柑橘"},
+                {"name": "竹叶花椒"}
+            ]
+        },
+        {
+            "name": "醉鱼草科",
+            "children": [
+                {"name": "密蒙花"}
+            ]
+        }
+    ]
+}
+var data3=
+{
+    "name":"乔木",
+    "children":[
+        {
+            "name": "柏科",
+            "children":[
+                {"name": "侧柏"},
+                {"name": "刺柏"},
+                {"name": "圆柏"}
+            ]
+        },
+        {
+            "name": "大戟科",
+            "children":[
+                {"name": "乌桕"}
+            ]
+        },
+        {
+            "name": "蝶形花科",
+            "children":[
+                {"name": "槐"}
+            ]
+        },
+        {
+            "name": "豆科",
+            "children":[
+                {"name": "刺槐"}
+            ]
+        },
+        {
+            "name": "杜英科",
+            "children":[
+                {"name": "杜英"}
+            ]
+        },
+        {
+            "name": "杜仲科",
+            "children":[
+                {"name": "杜仲"}
+            ]
+        },
+        {
+            "name": "含羞草科",
+            "children":[
+                {"name": "合欢"}
+            ]
+        },
+        {
+            "name": "胡桃科",
+            "children":[
+                {"name": "枫杨"}
+            ]
+        },
+        {
+            "name": "金缕梅科",
+            "children":[
+                {"name": "枫香树"}
+            ]
+        },
+        {
+            "name": "苦木科",
+            "children":[
+                {"name": "臭椿"}
+            ]
+        },
+        {
+            "name": "蓝果树科",
+            "children":[
+                {"name": "喜树"}
+            ]
+        },
+        {
+            "name": "楝科",
+            "children":[
+                {"name": "楝"},
+                {"name": "香椿"}
+            ]
+        },
+        {
+            "name": "罗汉松科",
+            "children":[
+                {"name": "短叶罗汉松"},
+                {"name": "罗汉松"}
+            ]
+        },
+        {
+            "name": "马鞭草科",
+            "children":[
+                {"name": "海州常山"}
+            ]
+        },
+        {
+            "name": "木兰科",
+            "children":[
+                {"name": "乐昌含笑"},
+                {"name": "绶草"},
+                {"name": "鹅掌楸"},
+                {"name": "二乔玉兰"},
+                {"name": "飞黄玉兰"},
+                {"name": "含笑花"},
+                {"name": "荷花玉兰"},
+                {"name": "桑"},
+                {"name": "玉兰"},
+                {"name": "紫玉兰"}
+            ]
+        },
+        {
+            "name": "木犀科",
+            "children":[
+                {"name": "女贞"}
+            ]
+        },
+        {
+            "name": "漆树科",
+            "children":[
+                {"name": "黄连木"},
+                {"name": "南酸枣"}
+            ]
+        },
+        {
+            "name": "槭树科",
+            "children":[
+                {"name": "鸡爪槭"},
+                {"name": "三角槭"},
+                {"name": "元宝槭"}
+            ]
+        },
+        {
+            "name": "蔷薇科",
+            "children":[
+                {"name": "梅"},
+                {"name": "尾叶樱桃"},
+                {"name": "垂丝海棠"},
+                {"name": "大叶早樱"},
+                {"name": "东京樱花"},
+                {"name": "李"},
+                {"name": "毛樱桃"},
+                {"name": "山樱花"},
+                {"name": "石楠"},
+                {"name": "樱属"},
+                {"name": "樱桃"},
+                {"name": "紫叶李"}
+            ]
+        },
+        {
+            "name": "桑科",
+            "children":[
+                {"name": "构树"}
+            ]
+        },
+        {
+            "name": "山茱萸科",
+            "children":[
+                {"name": "毛梾"}
+            ]
+        },
+        {
+            "name": "杉科",
+            "children":[
+                {"name": "池杉"},
+                {"name": "水杉"}
+            ]
+        },
+        {
+            "name": "松科",
+            "children":[
+                {"name": "日本五针松"},
+                {"name": "马尾松"},
+                {"name": "雪松"}
+            ]
+        },
+        {
+            "name": "苏铁",
+            "children":[
+                {"name": "苏铁"}
+            ]
+        },
+        {
+            "name": "桃金娘科",
+            "children":[
+                {"name": "红千层"}
+            ]
+        },
+        {
+            "name": "卫矛科",
+            "children":[
+                {"name": "白杜"}
+            ]
+        },
+        {
+            "name": "无患子科",
+            "children":[
+                {"name": "复羽叶栾树"},
+                {"name": "无患子"}
+            ]
+        },
+        {
+            "name": "梧桐科",
+            "children":[
+                {"name": "梧桐"}
+            ]
+        },
+        {
+            "name": "玄参科",
+            "children":[
+                {"name": "白花泡桐"}
+            ]
+        },
+        {
+            "name": "悬铃木科",
+            "children":[
+                {"name": "二球悬铃木"}
+            ]
+        },
+        {
+            "name": "杨柳科",
+            "children":[
+                {"name": "垂柳"}
+            ]
+        },
+        {
+            "name": "杨柳科",
+            "children":[
+                {"name": "垂柳"},
+                {"name": "旱柳"},
+                {"name": "加拿大杨"},
+                {"name": "杨梅"}
+            ]
+        },
+        {
+            "name": "银杏科",
+            "children":[
+                {"name": "银杏"}
+            ]
+        },
+        {
+            "name": "榆科",
+            "children":[
+                {"name": "榉树"},
+                {"name": "榔榆"},
+                {"name": "朴树"},
+                {"name": "榆树"}
+            ]
+        },
+        {
+            "name": "芸香科",
+            "children":[
+                {"name": "柚"}
+            ]
+        },
+        {
+            "name": "樟科",
+            "children":[
+                {"name": "月桂"},
+                {"name": "樟"}
+            ]
+        },
+        {
+            "name": "紫葳科",
+            "children":[
+                {"name": "黄金树"},
+                {"name": "梓"}
+            ]
+        },
+        {
+            "name": "棕榈科",
+            "children":[
+                {"name": "加拿利海枣"},
+                {"name": "棕榈"}
+            ]
+        }
+    ]
+};
+
+var data4={
+    
+    "name" : "藤本",
+    "children" : [
+        {
+            "name": "蝶形花科",
+            "children":[
+                {"name": "紫藤"}
+            ]
+        },
+        {
+            "name": "夹竹桃科",
+            "children":[
+                {"name": "花叶蔓长春花"},
+                {"name": "络石"}
+            ]
+        },
+        {
+            "name": "蔷薇科",
+            "children":[
+                {"name": "七姊妹"},
+                {"name": "木香花"}
+            ]
+        },
+        {
+            "name": "卫矛科",
+            "children":[
+                {"name": "扶芳藤"}
+            ]
+        },
+        {
+            "name": "五加科",
+            "children":[
+                {"name": "洋常春藤"}
+            ]
+        },
+        {
+            "name": "紫葳科",
+            "children":[
+                {"name": "凌霄"}
+            ]
+        }
+        
+    ]
+    
+}
+
+    // 基于准备好的dom，初始化echarts实例
+    var myChart1 = echarts.init(document.getElementById('tree1'));
+    var myChart2 = echarts.init(document.getElementById('tree2'));
+    var myChart3 = echarts.init(document.getElementById('tree3'));
+    var myChart4 = echarts.init(document.getElementById('tree4'));
+
+            
+    // 指定图表的配置项和数
+    var treeOption1 = {
+        tooltip: {
+        trigger: 'item',
+        triggerOn: 'mousemove'
+        },
+        series: [
+        {
+            type: 'tree',
+            data: [data1],
+            top: '1%',
+            left: '7%',
+            bottom: '1%',
+            right: '20%',
+            symbolSize: 7,
+            label: {
+            position: 'left',
+            verticalAlign: 'middle',
+            align: 'right',
+            fontSize: 9
+            },
+            leaves: {
+            label: {
+                position: 'right',
+                verticalAlign: 'middle',
+                align: 'left'
+            }
+            },
+            emphasis: {
+            focus: 'descendant'
+            },
+            expandAndCollapse: true,
+            animationDuration: 550,
+            animationDurationUpdate: 750
+        }
+        ]
+    };
+
+
+    var treeOption2 = {
+        tooltip: {
+        trigger: 'item',
+        triggerOn: 'mousemove'
+        },
+        series: [
+        {
+            type: 'tree',
+            data: [data2],
+            top: '1%',
+            left: '7%',
+            bottom: '1%',
+            right: '20%',
+            symbolSize: 7,
+            label: {
+            position: 'left',
+            verticalAlign: 'middle',
+            align: 'right',
+            fontSize: 9
+            },
+            leaves: {
+            label: {
+                position: 'right',
+                verticalAlign: 'middle',
+                align: 'left'
+            }
+            },
+            emphasis: {
+            focus: 'descendant'
+            },
+            expandAndCollapse: true,
+            animationDuration: 550,
+            animationDurationUpdate: 750
+        }
+        ]
+    };
+
+    var treeOption3 = {
+        tooltip: {
+        trigger: 'item',
+        triggerOn: 'mousemove'
+        },
+        series: [
+        {
+            type: 'tree',
+            data: [data3],
+            top: '1%',
+            left: '7%',
+            bottom: '1%',
+            right: '20%',
+            symbolSize: 7,
+            label: {
+            position: 'left',
+            verticalAlign: 'middle',
+            align: 'right',
+            fontSize: 9
+            },
+            leaves: {
+            label: {
+                position: 'right',
+                verticalAlign: 'middle',
+                align: 'left'
+            }
+            },
+            emphasis: {
+            focus: 'descendant'
+            },
+            expandAndCollapse: true,
+            animationDuration: 550,
+            animationDurationUpdate: 750
+        }
+        ]
+    };
+
+    var treeOption4 = {
+        tooltip: {
+        trigger: 'item',
+        triggerOn: 'mousemove'
+        },
+        series: [
+        {
+            type: 'tree',
+            data: [data4],
+            top: '1%',
+            left: '7%',
+            bottom: '1%',
+            right: '20%',
+            symbolSize: 7,
+            label: {
+            position: 'left',
+            verticalAlign: 'middle',
+            align: 'right',
+            fontSize: 9
+            },
+            leaves: {
+            label: {
+                position: 'right',
+                verticalAlign: 'middle',
+                align: 'left'
+            }
+            },
+            emphasis: {
+            focus: 'descendant'
+            },
+            expandAndCollapse: true,
+            animationDuration: 550,
+            animationDurationUpdate: 750
+        }
+        ]
+    };
+
+    myChart1.setOption(treeOption1);
+    myChart2.setOption(treeOption2);
+    myChart3.setOption(treeOption3);
+    myChart4.setOption(treeOption4);
+    
+    function myFunc(data) {
+
+        //科的种类
+        var keNum = [];
+        for (var i = 0; i < data.length; i++) {
+            var branch = data[i].template.branch;
+            if (!keNum[branch]) {
+                keNum[branch] = {
+                    value: 0,
+                    name: branch
+                }
+            }
+            keNum[branch].value++;
+        }
+        console.log(keNum);
+        console.log(1);
+        //被领养的科的种类
+        var ownerNum = [];
+        for (var i = 0; i < data.length; i++) {
+            var branch = data[i].template.branch;
+            if (data[i].owner!= null) {
+                console.log(data[i].template.name);
+                if (!ownerNum[branch]) {
+                    ownerNum[branch] = {
+                        value: 0,
+                        name: branch+"  "+data[i].template.name
+                        
+                    }
+                }
+                ownerNum[branch].value++;
+            }
+        }
+        console.log(ownerNum);
+
+        var keNums = Object.values(keNum)
+        var likeNum = Object.values(ownerNum)
+        console.log(keNums);
+        console.log(likeNum);
+        dataAxis = [];
+        for( var branch in keNum ){
+            var x = {
+                name: keNum[branch].name,
+            }
+            dataAxis.push(x);
+        }
+        console.log(dataAxis)
+
+
+        var pieOption1 = {
+            tooltip:{
+                trigger:'item'
+            },
+            legend: {
+                top: 'bottom'
+            },
+            /*grid: {
+                top: '5%',
+                bottom: '5px',
+                left: '10%',
+                right: '10%'
+            },
+            */
+            series: [
+                {
+                    name: '领养数目种类',
+                    type: 'pie',
+                    radius: ['30%','50%'],
+                    //center: ['50%', '50%'],
+                    avoidLabelOverlap: false,
+                    //roseType: 'radius',
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                        show: true,
+                        fontSize: 40,
+                        fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: likeNum
+                }
+            ]
+        };
+        option2 = {
+            tooltip:{
+                trigger:'item'
+            },
+            legend: {
+                bottom:8
+            },
+            grid: {
+                top: '5%',
+                bottom: '5px',
+                left: '10%',
+                right: '10%'
+            },
+            
+            series: [
+                {
+                    name: '领养数目种类',
+                    type: 'pie',
+                    radius: ['50%','70%'],
+                    //center: ['50%', '50%'],
+                    avoidLabelOverlap: true,
+                    //roseType: 'radius',
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                        show: true,
+                        fontSize: 40,
+                        fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: likeNum
+                }
+            ]
+        };
+
+        var pieOption1 = {
+            title: {
+                text: '校内领养植物种类',
+                left: 'center'
+            },
+            tooltip:{
+                trigger:'item'
+            },
+            legend: {
+                top: 'bottom'
+            },
+            grid: {
+                top: '5%',
+                bottom: '5px',
+                left: '10%',
+                right: '10%'
+            },
+            
+            series: [
+                {
+                    name: '领养植物种类',
+                    type: 'pie',
+                    radius: ['50%','70%'],
+                    //center: ['50%', '50%'],
+                    avoidLabelOverlap: false,
+                    //roseType: 'radius',
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                        show: true,
+                        fontSize: 40,
+                        fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: likeNum
+                }
+            ]
+        };
+        var pieOption2 = {
+            title: {
+                top:'8%',
+                text: '校内植物科目种类',
+                left: 'center'
+            },
+            tooltip:{
+                trigger:'item'
+            },
+            legend: {
+            type: 'scroll',            // 设置图例翻页
+            icon: 'rect',
+            itemWidth: 12,             // 图例图形宽度
+            itemHeight: 10,
+            orient: 'horizontal',     // 图例横向排布
+            left: 20,				// 图例位置
+            bottom: 8,
+            textStyle: {
+              color:  '#000000',
+              fontSize: 12
+            },
+            pageIconColor: '#90EE90',
+            pageTextStyle: {
+              color: '#000'
+            },
+            itemGap: 20
+		},
+
+            grid: {
+                top: '5%',
+                bottom: '5px',
+                left: '10%',
+                right: '10%'
+            },
+            
+            series: [
+                {
+                    name: '植物科目种类',
+                    type: 'pie',
+                    radius: ['40%','60%'],
+                    //center: ['50%', '50%'],
+                    avoidLabelOverlap: false,
+                    //roseType: 'radius',
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                        show: true,
+                        fontSize: 40,
+                        fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: keNums
+                }
+            ]
+        };
+
+        var pie1 = document.getElementById('pieofallkinds');
+        var myChart1 = echarts.init(pie1);
+        myChart1.setOption(pieOption2);
+
+        var pie2 = document.getElementById('pieofowned');
+        var myChart2 = echarts.init(pie2);
+        myChart2.setOption(pieOption1);
+
+
+
+        }
+
+        d3.json("524data.json", function (data) {
+        myFunc(data);
+        })
+
+        function Funnel(data) {
+            var plantCountByCollege = {};
+
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].owner != null) {
+                    var college = data[i].owner.title;
+
+                    if (!plantCountByCollege[college]) {
+                        plantCountByCollege[college] = {
+                            name: college,
+                            target: 0,
+                        };
+                    }
+
+                    plantCountByCollege[college].target++;
+                }
+            }
+
+            var mydata = [];
+            for (var college in plantCountByCollege) {
+                var myd = {
+                    name: plantCountByCollege[college].name
+                }
+
+                mydata.push(myd);
+            }
+
+            console.log(mydata);
+
+            var linkobjects = [];
+
+            for (var college in plantCountByCollege) {
+                var linkobject = {
+                    name: plantCountByCollege[college].name,
+                    value: plantCountByCollege[college].target
+                }
+
+                linkobjects.push(linkobject);
+            }
+
+            console.log(linkobjects)
+
+            //漏斗图
+            option = {
+                title: {
+                    //text: '学院认领情况漏斗图',
+                    left: 'left',
+                    top: 'top'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c}%'
+                },
+                toolbox: {
+                    orient: 'vertical',
+                    top: 'top',
+                    feature: {
+                        dataView: { readOnly: false },
+                        restore: {},
+                        saveAsImage: {}
+                    }
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: 5,
+                    top: '15%',
+                    data: mydata,
+                },
+                series: [
+                    {
+                        name: '认领植物比例',
+                        type: 'funnel',
+                        left: '10%',
+                        top: 60,
+                        bottom: 60,
+                        width: '80%',
+                        height: '60%',
+                        left: '0%',
+                        top: '0.5%',
+                        min: 0,
+                        max: 100,
+                        minSize: '0%',
+                        maxSize: '100%',
+                        sort: 'descending',
+                        gap: 2,
+                        label: {
+                            show: true,
+                            fontSize: 18,
+                            position: 'left'
+                        },
+                        labelLine: {
+                            length: 10,
+                            lineStyle: {
+                                width: 3,
+                                type: 'solid'
+                            }
+                        },
+                        itemStyle: {
+                            borderColor: '#fff',
+                            borderWidth: 1
+                        },
+                        emphasis: {
+                            label: {
+                                fontSize: 25
+                            }
+                        },
+                        data: linkobjects,
+                    }
+                ]
+            };
+
+            var Dom = document.getElementById('funnel');
+            var myChart = echarts.init(Dom);
+            myChart.setOption(option);
+        }
+
+        //d3.json("524data.json", function (data) {
+        d3.json("data_for_funnel.json", function (data) {
+            Funnel(data);
+        })
+
+
+    </script>
+</body>
+
+</html>

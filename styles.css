@@ -1,0 +1,133 @@
+#campusSelector {
+    background: rgba(103, 103, 103, 0.3);
+    width: 200px;
+    height: 50px;
+    margin-top: 20px;
+    font-size: 20px;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    margin-left:20px
+}
+
+#container {
+    float: left;
+    margin-top: 20px;
+    border: 1px solid rgba(176, 177, 178, 0.703);
+    border-radius:20px;
+    margin-left: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+#container::before,
+#container::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, rgba(221, 243, 240, 0), rgba(237, 58, 26, 0.719));
+    animation-duration: 2s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    float: left;
+}
+
+#container::before {
+    top: 0;
+    left: 0;
+    animation-name: flowLineTop;
+    float: left;
+}
+
+#container::after {
+    float: left;
+    
+    bottom: 0;
+    right: 0;
+    animation-name: flowLineBottom;
+}
+
+@keyframes flowLineTop {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes flowLineBottom {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+  #divider {
+    height: 1px;
+    background-color: rgba(72, 72, 72, 0.783);
+    margin: 0px;
+    border-width: 1000px
+  }
+
+
+  #sidebar {
+    float: right;
+    width:300px;
+    height: 900px;
+    margin-top: 20px;
+    border: 1px solid rgba(176, 177, 178, 0.703);
+    border-radius:20px;
+    margin-right: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+#pieofallkinds{
+    float: left;
+}
+
+#pieofowned{
+    float: right;
+}
+
+#funnel{
+    margin-top:150px;
+    float:center;
+    width: 1200px;
+    height: 900px;
+    margin-bottom: 0px;
+}
+
+#tree1 {
+    margin-top:0px;
+    width: 1000px;
+    height: 600px;
+    float:right;
+}
+#tree2 {
+    width: 1000px;
+    height: 1600px;
+    float:left;
+}
+#tree3 {
+    width: 1000px;
+    height: 1200px;
+    float: right;
+}
+#tree4 {
+    width: 1000px;
+    height: 400px;
+    float: left;
+}
+
+#cloud{
+    display:table;
+    float: float;
+    width:800px;
+    text-align: center;
+    line-height: 27px;
+    color: darkgreen;
+}
+
+
+#cloud imag{
+    margin-left:auto;
+    width:800px;
+    height:200px;
+}
